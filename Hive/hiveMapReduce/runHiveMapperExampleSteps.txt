@@ -1,0 +1,44 @@
+1. Start hive metastore using the following command
+./bin/hive --service metastore
+
+2. Create table u_data
+CREATE TABLE u_data (
+  userid INT,
+  movieid INT,
+  rating INT,
+  unixtime STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE;
+
+3. Download the MovieLens 100K data and unzip it
+wget http://files.grouplens.org/datasets/movielens/ml-100k.zip
+
+4. Load the u.data file into the above file
+LOAD DATA LOCAL INPATH '<path>/u.data'
+OVERWRITE INTO TABLE u_data;
+
+5. Write the mapper for transforming datetime to weekday
+same can be found in weekDayMapper.py file
+
+6. Create new table to store this transformation
+CREATE TABLE u_data_new (
+  userid INT,
+  movieid INT,
+  rating INT,
+  weekday INT)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t';
+
+7. Add the python file to hive
+add FILE '/home/ankit/hiveMapReduce/weekDayMapper.py'
+
+8. Execute the insert statement using the loaded python file
+INSERT OVERWRITE TABLE u_data_new
+    > SELECT 
+    > TRANSFORM(userid, movieid, rating, unixtime)
+    > USING 'python /home/ankit/hiveMapReduce/weekDayMapper.py'
+    > AS (userid, movieid, rating, weekday)
+    > FROM u_data;
+
+
